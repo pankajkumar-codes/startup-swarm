@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "startup-swarm"
+version = "0.2.0"
+description = "A ten-agent software startup (CEO to QA) on Amazon Bedrock, with review gates and token controls"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+dependencies = [
+    "boto3>=1.40",
+    "pydantic>=2.6",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "black>=24.0",
+    "flake8>=7.0",
+]
+agentcore = ["bedrock-agentcore"]
+
+[project.scripts]
+startup-swarm = "orchestrator.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["orchestrator*", "agents*"]
+
+[tool.setuptools.package-data]
+orchestrator = ["templates/*.md"]
+
+[tool.black]
+line-length = 120
+target-version = ["py311"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

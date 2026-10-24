@@ -1,0 +1,75 @@
+# startup-swarm configuration
+# This file is the "founder brief": the rules every agent and every phase follow.
+
+project:
+  name: "instagram-agent-skill"
+  target_reference_repo: "https://github.com/Jakeschincariol/instagram-agent-skill"
+  default_idea: >-
+    Build an open-source agent skill for Claude and Amazon Bedrock that plans Instagram
+    carousels, drafts reel captions and audits competitor accounts.
+
+# Stage settings. Bucket/table names are filled from the CDK stack outputs
+# (see README > AWS deployment) or from environment variables, which win.
+stages:
+  beta:
+    aws_region: "us-east-1"
+    s3_artifact_bucket: ""        # env S3_ARTIFACT_BUCKET overrides
+    dynamodb_state_table: ""      # env DYNAMODB_STATE_TABLE overrides
+    log_level: "DEBUG"
+  prod:
+    aws_region: "us-east-1"
+    s3_artifact_bucket: ""
+    dynamodb_state_table: ""
+    log_level: "INFO"
+
+# Model tiers. IDs are Bedrock cross-region inference profiles.
+# "global." routes to any commercial region with capacity; use "us." / "eu." to keep
+# traffic in one geography. Check the Bedrock console for what your account can call.
+models:
+  reasoner:            # deep synthesis: BRD, mocks, HLD, LLD
+    model_id: "global.anthropic.claude-sonnet-5-5"
+    max_tokens: 8000
+    temperature: 0.2
+  workhorse:           # code, tests, backlog, reviews
+    model_id: "global.anthropic.claude-haiku-5-5"
+    max_tokens: 6000
+    temperature: 0.1
+  evaluator:           # gates, scoping, research summaries
+    model_id: "global.anthropic.claude-haiku-5-5"
+    # Cheaper alternative: "global.amazon.nova-2-lite-v1:0" (weaker at strict JSON gating)
+    max_tokens: 2000
+    temperature: 0.0
+
+# Which tier each role runs on.
+roles:
+  ceo: evaluator
+  staff_researcher: evaluator
+  staff_po: reasoner
+  staff_designer: reasoner
+  staff_swe: reasoner
+  lead_swe: reasoner
+  staff_em: workhorse
+  staff_tpm: workhorse
+  senior_swe: workhorse
+  staff_qa: workhorse
+
+# Process rules ("who waits for whom"). The pipeline enforces these in code.
+process:
+  max_review_rounds: 1            # author revision passes per document
+  rereview_after_revision: false  # true = reviewers check the revised doc (costs tokens)
+  max_ceo_gate_attempts: 2        # CEO may send BRD+mocks back once
+  founder_approval_required: false  # true = pause after the CEO gate until you run --approve-gate founder
+  max_tickets_per_run: 5          # Phase 5 builds at most this many backlog tickets per run
+  reviewers:                      # domain-scoped reviewers per document
+    01_BRD.md: [staff_em, staff_swe, staff_researcher, staff_designer]
+    02_MOCKS.md: [staff_em, staff_swe, staff_researcher, staff_po]
+    03_HLD.md: [staff_em, lead_swe, staff_qa, staff_po]
+    04_LLD.md: [staff_em, staff_swe, staff_qa, staff_po]
+
+token_controls:
+  enable_prompt_caching: true
+  cache_ttl: "5m"                 # "1h" is supported on Claude 4.5+ models only
+  review_tier: workhorse          # all reviewers of a doc share one model so the doc is cached once
+  max_review_output_tokens: 800
+  budget_cap_tokens: 600000       # hard stop for one run (input + output + cache tokens)
+  fetch_reference_repo: true      # give the researcher the real README of the reference repo
