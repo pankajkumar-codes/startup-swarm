@@ -4,33 +4,49 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "startup-swarm"
-version = "0.2.0"
-description = "A ten-agent software startup (CEO to QA) on Amazon Bedrock, with review gates and token controls"
+dynamic = ["version"]
+description = "A ten-agent AI software startup (CEO to QA) with review gates and token controls. Runs on the Claude API, Amazon Bedrock, Google Vertex AI or Microsoft Foundry."
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.11"
+keywords = ["multi-agent", "ai-agents", "llm", "claude", "bedrock", "vertex-ai", "azure"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
 dependencies = [
-    "boto3>=1.40",
     "pydantic>=2.6",
     "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]
+bedrock = ["boto3>=1.40"]
+anthropic = ["anthropic>=1.0"]
+vertex = ["anthropic[vertex]>=1.0"]
+foundry = ["anthropic>=1.0", "azure-identity>=1.17"]
+all = ["boto3>=1.40", "anthropic[vertex]>=1.0", "azure-identity>=1.17"]
 dev = [
     "pytest>=8.0",
     "black>=24.0",
     "flake8>=7.0",
 ]
-agentcore = ["bedrock-agentcore"]
+
+[project.urls]
+Homepage = "https://github.com/pankajkumar-codes/startup-swarm"
+"AWS deployment" = "https://github.com/pankajkumar-codes/startup-swarm-aws"
 
 [project.scripts]
-startup-swarm = "orchestrator.cli:main"
+startup-swarm = "startup_swarm.cli:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "startup_swarm.__version__" }
 
 [tool.setuptools.packages.find]
-include = ["orchestrator*", "agents*"]
+include = ["startup_swarm*"]
 
 [tool.setuptools.package-data]
-orchestrator = ["templates/*.md"]
+startup_swarm = ["templates/*.md", "config.example.yaml"]
 
 [tool.black]
 line-length = 120

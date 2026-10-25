@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.3.0 (2026-10-25): cloud-neutral core
+
+Breaking
+- Package renamed to `startup_swarm` (was top-level `orchestrator` and `agents`).
+  Update imports: `from startup_swarm.agents import StaffSWEAgent`.
+- AWS hosting moved to [startup-swarm-aws](https://github.com/pankajkumar-codes/startup-swarm-aws):
+  CDK stacks, S3/DynamoDB storage, AgentCore entrypoint and the deploy workflow.
+- `config.yaml` is no longer in the repo root; run `startup-swarm init` to create one.
+  Model IDs are now per provider (`models.<tier>.model_ids.<provider>`).
+- Offline mode env var is `SWARM_MOCK=1` (`AWS_MOCK_MODE=1` still works).
+
+Added
+- Model providers: Claude API (`anthropic`), Amazon Bedrock (`bedrock`), Google Vertex AI
+  (`vertex`), Microsoft Foundry / Azure (`foundry`), offline `mock`. Each is an optional extra.
+- Plugin entry points for storage backends (`startup_swarm.backends`) and providers
+  (`startup_swarm.providers`).
+- `startup-swarm init` and `startup-swarm info` commands; `--provider` and `--backend` flags.
+- Release workflow: tag `vX.Y.Z` builds the package and creates a GitHub release.
+- CI builds the wheel and runs it from a clean environment; tests on Python 3.11 to 3.13.
+
 ## 0.2.0 (2026-10-24): review and fixes of the Gemini-generated 1.0.0
 
 Correctness

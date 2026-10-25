@@ -17,10 +17,7 @@ venv/
 .env.*
 !.env.example
 
-# AWS CDK
-cdk.out/
-infrastructure/cdk-outputs*.json
-
 # Run output
 artifacts/
 generated_project/
+config.yaml
