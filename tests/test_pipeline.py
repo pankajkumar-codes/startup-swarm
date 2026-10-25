@@ -4,7 +4,7 @@ import json
 import os
 import unittest
 
-from orchestrator.models import Verdict
+from startup_swarm.models import Verdict
 from tests.helpers import TempWorkspaceTest, blocker, ceo_json, kinds, review_json
 
 DOCS = [
@@ -161,7 +161,7 @@ class TestTaskMode(TempWorkspaceTest):
 
 class TestStatusAndEntrypoints(TempWorkspaceTest):
     def test_status_render(self):
-        from orchestrator import status
+        from startup_swarm import status
 
         p, _ = self.pipeline({"ceo_gate": ceo_json("REVISION_REQUIRED")})
         p.run("Test idea")
@@ -172,76 +172,15 @@ class TestStatusAndEntrypoints(TempWorkspaceTest):
         self.assertLess(data["progress_pct"], 100)
 
     def test_cli_round_trip(self):
-        from orchestrator.cli import main
+        from startup_swarm.cli import main
 
         args = ["--mock", "--workspace", self.ws]
         self.assertEqual(main(["run", *args, "--idea", "CLI idea"]), 0)
         self.assertEqual(main(["status", *args, "--json"]), 0)
         self.assertEqual(main(["task", "Add a flag", *args]), 0)
 
-    def test_agentcore_handler(self):
-        import importlib.util
-
-        from tests.helpers import REPO
-
-        spec = importlib.util.spec_from_file_location("ac_main", os.path.join(REPO, "agentcore_app", "main.py"))
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        os.environ["AWS_MOCK_MODE"] = "1"
-        try:
-            res = mod.handle({"action": "run", "project": "ac-test", "idea": "x"})
-            self.assertEqual(res["status"], "COMPLETED")
-            st = mod.handle({"action": "status", "project": "ac-test"})
-            self.assertEqual(st["progress_pct"], 100)
-            self.assertEqual(mod.handle({"action": "nope"})["status"], "FAILED")
-        finally:
-            del os.environ["AWS_MOCK_MODE"]
-            import shutil
-            import tempfile
-
-            shutil.rmtree(os.path.join(tempfile.gettempdir(), "swarm"), ignore_errors=True)
-
     def test_verdict_enum_values(self):
         self.assertEqual(Verdict.REVISE.value, "REVISE")
-
-
-class TestPrepareAgentCore(TempWorkspaceTest):
-    def test_upsert_runtime_entry(self):
-        import subprocess
-        import sys
-
-        from tests.helpers import REPO
-
-        proj = os.path.join(self.tmp, "SwarmRuntime")
-        os.makedirs(os.path.join(proj, "agentcore"))
-        with open(os.path.join(proj, "agentcore", "agentcore.json"), "w") as fh:
-            json.dump({"name": "SwarmRuntime", "runtimes": [{"name": "agent", "build": "CodeZip"}]}, fh)
-        outputs = os.path.join(self.tmp, "out.json")
-        with open(outputs, "w") as fh:
-            json.dump(
-                {
-                    "StartupOrchestratorStack-Beta": {
-                        "ArtifactBucketName": "b",
-                        "StateTableName": "t",
-                        "AgentRuntimeRoleArn": "arn:aws:iam::1:role/r",
-                    }
-                },
-                fh,
-            )
-        cmd = [sys.executable, os.path.join(REPO, "scripts", "prepare_agentcore.py")]
-        cmd += ["--stage", "beta", "--project-dir", proj, "--outputs", outputs]
-        for _ in range(2):  # idempotent
-            subprocess.run(cmd, check=True, capture_output=True)
-        spec = json.load(open(os.path.join(proj, "agentcore", "agentcore.json")))
-        names = [r["name"] for r in spec["runtimes"]]
-        self.assertEqual(names, ["agent", "startup_swarm_beta"])
-        rt = spec["runtimes"][1]
-        self.assertEqual(rt["executionRoleArn"], "arn:aws:iam::1:role/r")
-        self.assertIn({"name": "S3_ARTIFACT_BUCKET", "value": "b"}, rt["envVars"])
-        code = os.path.join(proj, "app", "startup_swarm_beta")
-        for f in ("main.py", "pyproject.toml", "config.yaml", "orchestrator/pipeline.py", "agents/ceo.py"):
-            self.assertTrue(os.path.exists(os.path.join(code, f)), f)
-        self.assertTrue(os.path.exists(os.path.join(code, "orchestrator", "templates", "03_HLD_TEMPLATE.md")))
 
 
 if __name__ == "__main__":

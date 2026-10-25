@@ -2,12 +2,12 @@
 
 import unittest
 
-from agents import AGENT_CLASSES, StaffQAAgent, StructuredOutputError
-from agents.charter import ORG_CHARTER
-from orchestrator.bedrock_client import BedrockClient
-from orchestrator.config import ModelSpec
-from orchestrator.mock_responder import MockResponder
-from orchestrator.models import CEODecision, Verdict
+from startup_swarm.agents import AGENT_CLASSES, StaffQAAgent, StructuredOutputError
+from startup_swarm.agents.charter import ORG_CHARTER
+from startup_swarm.llm.mock import MockClient
+from startup_swarm.config import ModelSpec
+from startup_swarm.llm.mock import MockResponder
+from startup_swarm.models import CEODecision, Verdict
 from tests.helpers import blocker, ceo_json, review_json
 
 MODEL = ModelSpec("global.anthropic.claude-haiku-5-5", 1000, 0.0)
@@ -15,14 +15,14 @@ MODEL = ModelSpec("global.anthropic.claude-haiku-5-5", 1000, 0.0)
 
 def agent(cls, overrides):
     responder = MockResponder(overrides)
-    return cls(MODEL, BedrockClient(mock_mode=True, mock_responder=responder)), responder
+    return cls(MODEL, MockClient(responder=responder)), responder
 
 
 class TestAgents(unittest.TestCase):
     def test_ten_roles_share_the_charter_prefix(self):
         self.assertEqual(len(AGENT_CLASSES), 10)
         for cls in AGENT_CLASSES.values():
-            a = cls(MODEL, BedrockClient(mock_mode=True))
+            a = cls(MODEL, MockClient())
             self.assertEqual(a.system_blocks()[0], ORG_CHARTER)
 
     def test_review_fails_closed_on_garbage(self):
@@ -39,7 +39,7 @@ class TestAgents(unittest.TestCase):
 
     def test_review_shares_document_prefix_across_reviewers(self):
         qa, r1 = agent(StaffQAAgent, {})
-        from agents import StaffEMAgent
+        from startup_swarm.agents import StaffEMAgent
 
         em = StaffEMAgent(MODEL, qa.client)
         qa.review("03_HLD.md", "# HLD body")
@@ -50,7 +50,7 @@ class TestAgents(unittest.TestCase):
         self.assertNotEqual(a.instruction, b.instruction)
 
     def test_structured_output_retries_then_raises(self):
-        from agents import CEOAgent
+        from startup_swarm.agents import CEOAgent
 
         ceo, responder = agent(CEOAgent, {"ceo_gate": ["not json", ceo_json("APPROVED")]})
         decision = ceo.ask_structured("ceo_gate", "decide", CEODecision)

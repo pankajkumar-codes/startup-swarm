@@ -4,11 +4,11 @@ import shutil
 import tempfile
 import unittest
 
-from orchestrator.mock_responder import MockResponder
-from orchestrator.pipeline import StartupPipeline
+from startup_swarm.llm.mock import MockResponder
+from startup_swarm.pipeline import StartupPipeline
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CONFIG = os.path.join(REPO, "config.yaml")
+CONFIG = os.path.join(REPO, "startup_swarm", "config.example.yaml")
 
 
 def review_json(verdict="APPROVED", blockers=None, score=4):

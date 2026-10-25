@@ -1,0 +1,90 @@
+# startup-swarm configuration ("founder brief")
+# Created by `startup-swarm init`. Every agent and phase follows these rules.
+
+project:
+  name: "my-first-product"
+  target_reference_repo: ""        # optional GitHub repo to benchmark against
+  default_idea: >-
+    A command-line tool that turns meeting notes into Jira tickets.
+
+# Which model provider runs the agents.
+#   bedrock   - Amazon Bedrock (pip install "startup-swarm[bedrock]", AWS credentials)
+#   anthropic - Claude API     (pip install "startup-swarm[anthropic]", ANTHROPIC_API_KEY)
+#   vertex    - Google Vertex  (pip install "startup-swarm[vertex]", gcloud credentials)
+#   foundry   - Azure (Microsoft Foundry) (pip install "startup-swarm[foundry]", API key or Entra ID)
+#   mock      - offline, no cost (same as --mock)
+# Override per run with --provider or SWARM_PROVIDER.
+provider:
+  name: anthropic
+  region: "us-east-1"              # bedrock region, or Vertex region (e.g. us-east5)
+  project_id: ""                   # Vertex only: your Google Cloud project id
+  base_url: ""                     # Foundry only: https://<resource>.services.ai.azure.com/anthropic
+
+# Stages and where each keeps documents/state. The core ships the "local" backend;
+# cloud packages add more (startup-swarm-aws adds "aws": S3 + DynamoDB).
+stages:
+  beta:
+    backend: local
+  prod:
+    backend: local
+
+# Model tiers. Each provider names the same model differently.
+models:
+  reasoner:            # deep synthesis: BRD, mocks, HLD, LLD
+    model_ids:
+      bedrock: "global.anthropic.claude-sonnet-5-5"
+      anthropic: "claude-sonnet-5-5"
+      vertex: "claude-sonnet-5-5"
+      foundry: "claude-sonnet-5-5"     # Foundry: your deployment name
+    max_tokens: 8000
+    temperature: 0.2
+  workhorse:           # code, tests, backlog, reviews
+    model_ids:
+      bedrock: "global.anthropic.claude-haiku-5-5"
+      anthropic: "claude-haiku-5-5"
+      vertex: "claude-haiku-5-5"
+      foundry: "claude-haiku-5-5"
+    max_tokens: 6000
+    temperature: 0.1
+  evaluator:           # gates, scoping, research summaries
+    model_ids:
+      bedrock: "global.anthropic.claude-haiku-5-5"
+      anthropic: "claude-haiku-5-5"
+      vertex: "claude-haiku-5-5"
+      foundry: "claude-haiku-5-5"
+    max_tokens: 2000
+    temperature: 0.0
+
+# Which tier each role runs on.
+roles:
+  ceo: evaluator
+  staff_researcher: evaluator
+  staff_po: reasoner
+  staff_designer: reasoner
+  staff_swe: reasoner
+  lead_swe: reasoner
+  staff_em: workhorse
+  staff_tpm: workhorse
+  senior_swe: workhorse
+  staff_qa: workhorse
+
+# Process rules. The pipeline enforces these in code.
+process:
+  max_review_rounds: 1            # author revision passes per document
+  rereview_after_revision: false  # true = reviewers check the revised doc (costs tokens)
+  max_ceo_gate_attempts: 2        # CEO may send BRD+mocks back once
+  founder_approval_required: false  # true = pause after the CEO gate until `approve-gate founder`
+  max_tickets_per_run: 5          # Phase 5 builds at most this many tickets per run
+  reviewers:                      # domain-scoped reviewers per document
+    01_BRD.md: [staff_em, staff_swe, staff_researcher, staff_designer]
+    02_MOCKS.md: [staff_em, staff_swe, staff_researcher, staff_po]
+    03_HLD.md: [staff_em, lead_swe, staff_qa, staff_po]
+    04_LLD.md: [staff_em, staff_swe, staff_qa, staff_po]
+
+token_controls:
+  enable_prompt_caching: true
+  cache_ttl: "5m"                 # "1h" works on recent Claude models only
+  review_tier: workhorse          # all reviewers of a doc share one model, so the doc is cached once
+  max_review_output_tokens: 800
+  budget_cap_tokens: 600000       # hard stop for one run (input + output + cache tokens)
+  fetch_reference_repo: true      # give the researcher the real README of the reference repo

@@ -4,11 +4,11 @@ import os
 import tempfile
 import unittest
 
-from orchestrator.config import Settings
-from orchestrator.file_blocks import UnsafePathError, parse_file_blocks, safe_relpath, write_files
-from orchestrator.json_utils import JSONExtractionError, extract_json_object
-from orchestrator.models import Priority, ReviewComment, ReviewResult, SprintBacklog, Verdict
-from orchestrator.review_aggregator import ReviewAggregator
+from startup_swarm.config import Settings
+from startup_swarm.file_blocks import UnsafePathError, parse_file_blocks, safe_relpath, write_files
+from startup_swarm.json_utils import JSONExtractionError, extract_json_object
+from startup_swarm.models import Priority, ReviewComment, ReviewResult, SprintBacklog, Verdict
+from startup_swarm.review_aggregator import ReviewAggregator
 from tests.helpers import CONFIG
 
 
@@ -98,12 +98,24 @@ class TestSettings(unittest.TestCase):
         self.assertIn("haiku", s.model_for_role("senior_swe").model_id)
         self.assertEqual(s.reviewers_for("03_HLD.md", []), ["staff_em", "lead_swe", "staff_qa", "staff_po"])
 
-    def test_env_overrides_stage_values(self):
-        os.environ["S3_ARTIFACT_BUCKET"] = "bucket-from-env"
+    def test_env_overrides_provider_and_backend(self):
+        os.environ["SWARM_PROVIDER"] = "bedrock"
+        os.environ["SWARM_BACKEND"] = "aws"
         try:
-            self.assertEqual(Settings.load(CONFIG, "prod").s3_bucket, "bucket-from-env")
+            s = Settings.load(CONFIG, "prod")
+            self.assertEqual(s.provider_name, "bedrock")
+            self.assertEqual(s.backend_name, "aws")
+            self.assertEqual(s.model_for_role("staff_swe").model_id, "global.anthropic.claude-sonnet-5-5")
         finally:
-            del os.environ["S3_ARTIFACT_BUCKET"]
+            del os.environ["SWARM_PROVIDER"], os.environ["SWARM_BACKEND"]
+
+    def test_model_ids_follow_provider(self):
+        self.assertEqual(
+            Settings.load(CONFIG, "beta", provider="anthropic").tier("workhorse").model_id, "claude-haiku-5-5"
+        )
+        with self.assertRaises(KeyError):
+            Settings.load(CONFIG, "beta", provider="azure").tier("workhorse")
+        self.assertEqual(Settings.load(None, "beta", provider="mock").tier("reasoner").model_id, "mock-model")
 
     def test_bad_stage_and_missing_file(self):
         with self.assertRaises(ValueError):
