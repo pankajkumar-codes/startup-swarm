@@ -164,3 +164,19 @@ class TestMockBanner(unittest.TestCase):
         text = MockResponder().respond(prompt)
         self.assertIn("MOCK OUTPUT", text)
         self.assertIn("A CSV to JSON tool", text)
+
+
+class TestClaudeCodePlugin(unittest.TestCase):
+    ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    def test_manifests_and_skills_are_valid(self):
+        import json
+
+        for name in ("plugin.json", "marketplace.json"):
+            with open(os.path.join(self.ROOT, ".claude-plugin", name), encoding="utf-8") as fh:
+                json.load(fh)
+        for skill in ("swarm-run", "swarm-inspect"):
+            with open(os.path.join(self.ROOT, "skills", skill, "SKILL.md"), encoding="utf-8") as fh:
+                text = fh.read()
+            self.assertTrue(text.startswith("---\nname: " + skill + "\n"), skill)
+            self.assertIn("description:", text.split("---")[1])

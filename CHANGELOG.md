@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Claude Code plugin (experimental): `swarm-run` and `swarm-inspect` skills, plugin and marketplace manifests.
+- Release workflow can publish to PyPI with trusted publishing (off until `PUBLISH_TO_PYPI=true`); see CONTRIBUTING.
+- Package metadata: authors, Python version classifiers, issue and changelog links.
+
 ## 0.3.1 (2026-11-12): safer task mode, clearer docs
 
 - `task --target-dir` no longer overwrites existing files that were not passed with `--context-file`,
