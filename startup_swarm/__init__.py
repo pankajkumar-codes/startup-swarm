@@ -9,7 +9,7 @@ Public API (stable across 0.x minor releases):
     from startup_swarm.artifact_bus import RemoteMirror  # for cloud plugins
 """
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 from startup_swarm.config import ModelSpec, Settings  # noqa: E402
 from startup_swarm.llm import make_client  # noqa: E402

@@ -8,6 +8,7 @@ the CLI and the test suite with no cloud account and no token spend. Tests can s
 from __future__ import annotations
 
 import json
+import re
 from typing import Callable, Dict, List, Union
 
 from startup_swarm.config import ModelSpec
@@ -46,37 +47,37 @@ _BACKLOG = {
         },
         {
             "id": "T2",
-            "title": "Caption generator",
-            "description": "Implement generate_caption() per LLD section 3.",
+            "title": "Core feature",
+            "description": "Implement run_core() per LLD section 3.",
             "assignee": "senior_swe",
             "priority": "P1",
             "complexity": "M",
             "dependencies": ["T1"],
-            "acceptance_criteria": ["Returns 3 hooks and up to 15 hashtags"],
+            "acceptance_criteria": ["Returns three result lines for a non-empty input"],
         },
     ],
 }
 
 _DOCS = {
     "author:vision": (
-        "# CEO Vision\n\nTarget user: solo creators.\n\n"
+        "# CEO Vision\n\nTarget user: the founder who gave the idea.\n\n"
         "## Guardrails\n1. Ship small.\n2. Offline tests.\n3. No secrets in code.\n"
     ),
     "author:research_questions": (
         "# Key questions for research\n1. Who uses the reference repo today?\n2. What is missing?\n"
     ),
     "author:research": (
-        "# Market Research\n\n## Unique selling proposition\nOne-command deploy to your own AWS account.\n\n"
+        "# Market Research\n\n## Unique selling proposition\nPlaceholder positioning.\n\n"
         "## Unknowns\n- Usage numbers.\n"
     ),
     "author:brd": (
-        "# BRD\n\n## Press release\n...\n\n## User stories\n"
-        "Given a topic, when I run `caption`, then I get 3 hooks.\n"
+        "# BRD\n\n## Press release\nPlaceholder press release.\n\n## User stories\n"
+        "Given an input, when I run the tool, then I get three result lines.\n"
     ),
-    "author:mocks": "# DX Mocks\n\n```text\n$ skill caption --topic 'AI'\nHook 1: ...\n```\n",
+    "author:mocks": "# DX Mocks\n\n```text\n$ tool run --input 'example'\nResult 1: ...\n```\n",
     "author:hld": "# HLD\n\n```mermaid\ngraph TD\n  CLI --> Core\n```\n",
-    "author:lld": "# LLD\n\n## 2. Models\n`class CaptionRequest(BaseModel): topic: str`\n",
-    "contract": "# Contract\n\n`def generate_caption(topic: str) -> list[str]`\n",
+    "author:lld": "# LLD\n\n## 2. Models\n`class Request(BaseModel): text: str`\n",
+    "contract": "# Contract\n\n`def run_core(text: str) -> list[str]`\n",
 }
 
 _IMPL = """NOTES: mock implementation
@@ -84,29 +85,40 @@ _IMPL = """NOTES: mock implementation
 \"\"\"Core module (mock output).\"\"\"
 
 
-def generate_caption(topic: str) -> list[str]:
-    \"\"\"Return three hook lines for a topic.\"\"\"
-    if not topic.strip():
-        raise ValueError("topic must not be empty")
-    return [f"{topic}: hook {i}" for i in range(1, 4)]
+def run_core(text: str) -> list[str]:
+    \"\"\"Return three placeholder result lines.\"\"\"
+    if not text.strip():
+        raise ValueError("text must not be empty")
+    return [f"{text}: result {i}" for i in range(1, 4)]
 <<<END FILE>>>
 """
 
 _TESTS = """<<<FILE tests/test_core.py>>>
 import pytest
 
-from src.app.core import generate_caption
+from src.app.core import run_core
 
 
-def test_three_hooks():
-    assert len(generate_caption("AI")) == 3
+def test_three_results():
+    assert len(run_core("AI")) == 3
 
 
-def test_empty_topic_rejected():
+def test_empty_input_rejected():
     with pytest.raises(ValueError):
-        generate_caption("  ")
+        run_core("  ")
 <<<END FILE>>>
 """
+
+
+_IDEA_RE = re.compile(r"Founder's idea:\n(.+?)(?:\n\n|$)", re.S)
+
+
+def _banner(prompt: Prompt) -> str:
+    """Make it obvious that offline output is placeholder text, and echo the founder's idea."""
+    text = "\n".join(list(prompt.context) + [prompt.instruction])
+    match = _IDEA_RE.search(text)
+    idea = f" Idea: {match.group(1).strip()[:200]}" if match else ""
+    return f"> MOCK OUTPUT: placeholder text, no model was called.{idea}\n\n"
 
 
 class MockResponder:
@@ -157,7 +169,8 @@ class MockResponder:
                 _DOCS.get("author:" + kind.split(":", 1)[1], "# Revised\n")
                 + "\n## Changes in this revision\n- Addressed review.\n"
             )
-        return _DOCS.get(kind, f"# Mock output for {kind}\n")
+        doc = _DOCS.get(kind, f"# Mock output for {kind}\n")
+        return _banner(prompt) + doc if kind.startswith("author:") else doc
 
 
 class MockClient(LLMClient):

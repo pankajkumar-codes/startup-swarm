@@ -147,3 +147,16 @@ class TestSettings(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestMockBanner(unittest.TestCase):
+    def test_docs_are_labelled_and_echo_idea(self):
+        from startup_swarm.llm.base import Prompt
+        from startup_swarm.llm.mock import MockResponder
+
+        prompt = Prompt(
+            system=[], context=[], instruction="Founder's idea:\nA CSV to JSON tool\n\nWrite it.", kind="author:vision"
+        )
+        text = MockResponder().respond(prompt)
+        self.assertIn("MOCK OUTPUT", text)
+        self.assertIn("A CSV to JSON tool", text)

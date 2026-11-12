@@ -3,20 +3,48 @@
 [![CI](https://github.com/pankajkumar-codes/startup-swarm/actions/workflows/test.yml/badge.svg)](https://github.com/pankajkumar-codes/startup-swarm/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A ten-person software startup made of AI agents. You give it an idea. The CEO, Product
-Owner, Market Researcher, Product Designer, Staff/Lead/Senior engineers, QA, EM and TPM
-take it from vision through BRD, mocks, HLD, LLD and backlog to working code with tests.
-There are review gates between every step.
+**Give it a product idea. A team of ten AI agents (CEO, product, research, design, engineering, QA)
+turns it into a vision, requirements, designs, a backlog, and working code with tests, with a real
+review gate between every step.**
 
-- **Cloud-neutral core.** Runs on the Claude API, Amazon Bedrock, Google Vertex AI or
-  Microsoft Foundry (Azure). Pick one in `config.yaml`.
-- **Runs offline first.** Mock mode exercises the whole company with no account and no cost.
-- **Process rules are code, not prompts.** Engineering cannot start until the CEO gate is approved.
-- **Token-frugal by design.** Agents hand off documents instead of chat history. Reviews are
-  scoped and in JSON, revisions are bounded, prompts are cached, and a hard token budget lets
-  a stopped run resume where it left off.
-- **Pluggable storage.** Documents and state live on local disk by default. Cloud packages add
-  hosted storage and deployment.
+It is an open-source Python tool you run yourself, on your own model account. It is for developers
+and founders who want to see what a structured AI team produces from an idea, and who will read and
+own the result. It is not a hosted service, and it does not replace engineers: the output is a
+first draft for you to review.
+
+## Try it in two minutes (free, offline)
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate      # Windows PowerShell: py -3.12 -m venv .venv; .\.venv\Scripts\Activate.ps1
+pip install "git+https://github.com/pankajkumar-codes/startup-swarm.git@v0.3.1"
+startup-swarm init
+startup-swarm run --mock --idea "A CLI that converts CSV files to JSON"
+```
+
+This uses the built-in mock model: no account, no cost, placeholder text. It proves the whole
+pipeline, gates and resume logic work on your machine. Add a real model with the
+[first real run](#your-first-real-run-claude-api) below.
+
+## What you get
+
+```text
+artifacts/beta/<project>/
+  00_CEO_VISION.md   01_MARKET_RESEARCH.md   01_BRD.md   02_MOCKS.md   02_CEO_DECISION.md
+  03_HLD.md          04_LLD.md               05_SPRINT_BACKLOG.md
+  reviews/           every reviewer's verdict and the merged punch list
+  tickets/           one report per ticket
+  generated_project/ the code and tests
+  .history/          every version of every document
+```
+
+## Why it is different
+
+- **Process rules are code, not prompts.** Engineering cannot start until the CEO gate is approved, and an
+  unreadable review counts as a blocker, never as a pass.
+- **Cloud-neutral.** Claude API, Amazon Bedrock, Google Vertex AI or Microsoft Foundry (Azure). Pick one in `config.yaml`.
+- **Token-frugal and resumable.** Agents hand off documents, not chat history. Reviews are scoped, revisions are bounded,
+  prompts are cached, and a hard token budget stops a run cleanly so you can resume it.
+- **Pluggable storage.** Local disk by default; cloud packages add hosted storage and deployment.
 
 > **Read before you run it with a real model**
 >
@@ -79,7 +107,7 @@ Tiers map to models in `config.yaml`. By default the reasoner is Claude Sonnet 5
 workhorse and evaluator are Claude Haiku 5.5. The shared company charter that every agent
 follows is in `startup_swarm/agents/charter.py`.
 
-## Quickstart (offline, about 5 minutes)
+## Quickstart in detail
 
 Requires Python 3.11+.
 
@@ -87,7 +115,7 @@ macOS / Linux:
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
-pip install "git+https://github.com/pankajkumar-codes/startup-swarm.git@v0.3.0"
+pip install "git+https://github.com/pankajkumar-codes/startup-swarm.git@v0.3.1"
 
 mkdir my-startup && cd my-startup
 startup-swarm init                                        # writes config.yaml
@@ -100,7 +128,7 @@ Windows (PowerShell):
 ```powershell
 py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1                              # if blocked: Set-ExecutionPolicy -Scope Process Bypass
-pip install "git+https://github.com/pankajkumar-codes/startup-swarm.git@v0.3.0"
+pip install "git+https://github.com/pankajkumar-codes/startup-swarm.git@v0.3.1"
 
 mkdir my-startup; cd my-startup
 startup-swarm init
@@ -113,7 +141,7 @@ You should see each document reviewed as `APPROVED`, then `COMPLETED: All phases
 ### Your first real run (Claude API)
 
 ```powershell
-pip install "startup-swarm[anthropic] @ git+https://github.com/pankajkumar-codes/startup-swarm.git@v0.3.0"
+pip install "startup-swarm[anthropic] @ git+https://github.com/pankajkumar-codes/startup-swarm.git@v0.3.1"
 $env:ANTHROPIC_API_KEY = "sk-ant-..."          # macOS/Linux: export ANTHROPIC_API_KEY=...
 # In config.yaml set token_controls.budget_cap_tokens to 100000 for a first, cheap test
 startup-swarm run --provider anthropic --idea "A CLI that converts CSV files to JSON"
@@ -135,12 +163,13 @@ quality of real model output.
 
 ## Choose a model provider
 
-Install the extra for your provider. Then set `provider.name` in `config.yaml`, or pass
-`--provider` on each command.
+Install the extra for your provider, for example
+`pip install "startup-swarm[bedrock] @ git+https://github.com/pankajkumar-codes/startup-swarm.git@v0.3.1"`.
+Then set `provider.name` in `config.yaml`, or pass `--provider` on each command.
 
 | Provider | Install | Credentials | Model IDs in config |
 |---|---|---|---|
-| `anthropic` (Claude API) | `pip install "startup-swarm[anthropic] @ git+…"` | `ANTHROPIC_API_KEY` | `claude-sonnet-5-5` |
+| `anthropic` (Claude API) | `startup-swarm[anthropic]` (see install note below) | `ANTHROPIC_API_KEY` | `claude-sonnet-5-5` |
 | `bedrock` (AWS) | `startup-swarm[bedrock]` | AWS credential chain (profile, env, role) | `global.anthropic.claude-sonnet-5-5` |
 | `vertex` (GCP) | `startup-swarm[vertex]` | `gcloud auth application-default login`; set `provider.project_id` and `provider.region` | `claude-sonnet-5-5` |
 | `foundry` (Azure) | `startup-swarm[foundry]` | `AZURE_FOUNDRY_API_KEY`, or Entra ID (`az login`); set `provider.base_url` | your deployment names |
@@ -266,7 +295,7 @@ To release, bump `__version__` in `startup_swarm/__init__.py`, merge, then push 
 The Release workflow builds the package and creates a GitHub release. Cloud repos pin to these tags.
 
 ```bash
-git tag v0.3.0 && git push origin v0.3.0
+git tag vX.Y.Z && git push origin vX.Y.Z
 ```
 
 ## Repository layout
