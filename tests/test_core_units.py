@@ -76,6 +76,27 @@ class TestFileBlocks(unittest.TestCase):
             parse_file_blocks("<<<FILE ../../evil.py>>>\nx\n<<<END FILE>>>")
 
 
+class TestOverwriteGuard(unittest.TestCase):
+    def test_existing_file_not_overwritten_unless_listed(self):
+        with tempfile.TemporaryDirectory() as d:
+            with open(os.path.join(d, "keep.py"), "w") as fh:
+                fh.write("original\n")
+            with self.assertRaises(UnsafePathError):
+                write_files(d, {"new.py": "x\n", "keep.py": "y\n"}, overwrite=[])
+            self.assertFalse(os.path.exists(os.path.join(d, "new.py")), "nothing is written when one path is refused")
+            with open(os.path.join(d, "keep.py")) as fh:
+                self.assertEqual(fh.read(), "original\n")
+            write_files(d, {"keep.py": "y\n"}, overwrite=["keep.py"])
+            with open(os.path.join(d, "keep.py")) as fh:
+                self.assertEqual(fh.read(), "y\n")
+
+    def test_ci_config_protected_in_existing_repo(self):
+        with tempfile.TemporaryDirectory() as d:
+            with self.assertRaises(UnsafePathError):
+                write_files(d, {".github/workflows/x.yml": "on: push\n"}, overwrite=[])
+            write_files(d, {".github/workflows/x.yml": "on: push\n"})  # fresh output folder is fine
+
+
 class TestBacklogOrdering(unittest.TestCase):
     def test_dependencies_come_first(self):
         backlog = SprintBacklog(

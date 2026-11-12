@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import os
 import re
-from typing import Dict, List
+from typing import Dict, Iterable, List, Optional, Tuple
 
 FILE_FORMAT_INSTRUCTIONS = """\
 Output every file you create or change in this exact format, and nothing else:
@@ -58,20 +58,34 @@ def parse_file_blocks(text: str) -> Dict[str, str]:
     return files
 
 
-def write_files(root: str, files: Dict[str, str]) -> List[str]:
-    """Write files under ``root``. Re-validates every path; returns written paths."""
+def write_files(root: str, files: Dict[str, str], overwrite: Optional[Iterable[str]] = None) -> List[str]:
+    """Write files under ``root``. Re-validates every path; returns written paths.
+
+    With ``overwrite=None`` (a fresh output folder) existing files are replaced. With a collection
+    (writing into an existing repo) only the listed paths may replace existing files, nothing under
+    ``.github/`` may be touched, and every path is checked before the first file is written.
+    """
     root_abs = os.path.realpath(root)
-    written: List[str] = []
+    allowed = None if overwrite is None else {safe_relpath(p) for p in overwrite}
+    targets: List[Tuple[str, str, str]] = []
     for rel, body in files.items():
         rel = safe_relpath(rel)
         dest = os.path.realpath(os.path.join(root_abs, rel))
         if not dest.startswith(root_abs + os.sep):
             raise UnsafePathError(f"{rel} resolves outside {root}")
+        if allowed is not None:
+            if rel.startswith(".github/"):
+                raise UnsafePathError(f"refusing to modify CI configuration in an existing repo: {rel}")
+            if os.path.exists(dest) and rel not in allowed:
+                raise UnsafePathError(
+                    f"{rel} already exists and was not passed with --context-file; refusing to overwrite it"
+                )
+        targets.append((rel, dest, body))
+    for _, dest, body in targets:
         os.makedirs(os.path.dirname(dest), exist_ok=True)
         with open(dest, "w", encoding="utf-8") as fh:
             fh.write(body)
-        written.append(rel)
-    return written
+    return [rel for rel, _, _ in targets]
 
 
 def render_files_for_prompt(files: Dict[str, str]) -> str:

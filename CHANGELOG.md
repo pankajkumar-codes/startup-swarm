@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- `task --target-dir` no longer overwrites existing files that were not passed with `--context-file`,
+  never writes under `.github/`, and writes nothing if any path is refused.
+- README: cost and safety box, PowerShell quickstart, first real run, provider status.
+- Added CONTRIBUTING, SECURITY, CODE_OF_CONDUCT, issue forms and a PR template.
+
 ## 0.3.0 (2026-10-25): cloud-neutral core
 
 Breaking
