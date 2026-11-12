@@ -1,0 +1,15 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "startup-swarm",
+  "description": "Skills for running startup-swarm, a ten-agent AI software startup",
+  "owner": { "name": "pankajkumar-codes", "url": "https://github.com/pankajkumar-codes" },
+  "plugins": [
+    {
+      "name": "startup-swarm",
+      "description": "Run and inspect startup-swarm from Claude Code.",
+      "source": "./",
+      "category": "development",
+      "homepage": "https://github.com/pankajkumar-codes/startup-swarm"
+    }
+  ]
+}

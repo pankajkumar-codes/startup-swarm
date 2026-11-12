@@ -1,0 +1,10 @@
+{
+  "name": "startup-swarm",
+  "description": "Run and inspect startup-swarm, a ten-agent AI software startup, from Claude Code: free offline trial, cost-safe real runs, gate approvals and reading the generated documents and code.",
+  "version": "0.3.1",
+  "author": { "name": "pankajkumar-codes" },
+  "homepage": "https://github.com/pankajkumar-codes/startup-swarm",
+  "repository": "https://github.com/pankajkumar-codes/startup-swarm",
+  "license": "MIT",
+  "keywords": ["multi-agent", "ai-agents", "software-engineering", "claude", "orchestration"]
+}

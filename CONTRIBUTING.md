@@ -34,4 +34,16 @@ black --check startup_swarm tests && flake8 startup_swarm tests
 
 ## Releases
 
-Maintainers bump `__version__`, merge, then push a matching `vX.Y.Z` tag.
+Maintainers bump `__version__`, merge, then push a matching `vX.Y.Z` tag. The Release workflow builds the
+package and creates a GitHub release.
+
+### Publishing to PyPI (one-time setup)
+
+1. Create an account at pypi.org and turn on two-factor authentication.
+2. On PyPI go to **Your projects > Publishing** and add a *pending publisher*: project name `startup-swarm`,
+   owner `pankajkumar-codes`, repository `startup-swarm`, workflow `release.yml`, environment `pypi`.
+3. In GitHub go to **Settings > Environments**, create an environment named `pypi`
+   (optionally with yourself as required reviewer).
+4. In **Settings > Secrets and variables > Actions > Variables** add `PUBLISH_TO_PYPI` = `true`.
+
+From the next `vX.Y.Z` tag the release is also published to PyPI. No token is stored in GitHub.

@@ -25,6 +25,17 @@ This uses the built-in mock model: no account, no cost, placeholder text. It pro
 pipeline, gates and resume logic work on your machine. Add a real model with the
 [first real run](#your-first-real-run-claude-api) below.
 
+## Use it from Claude Code (experimental)
+
+The repo is also a Claude Code plugin with two skills: `swarm-run` (try it offline first, then a cost-capped real run)
+and `swarm-inspect` (read the output, review the code, handle gates). The skills drive the `startup-swarm` CLI, so
+install the CLI too. This packaging has not yet been tried inside Claude Code, so please report problems.
+
+```text
+/plugin marketplace add pankajkumar-codes/startup-swarm
+/plugin install startup-swarm@startup-swarm
+```
+
 ## What you get
 
 ```text
