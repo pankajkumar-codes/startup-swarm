@@ -611,6 +611,7 @@ class StartupPipeline:
                 design_context=[c for c in context[1:2] if c.startswith("# Existing LLD")],
                 existing_files=existing,
                 need_contract=True,
+                overwrite=list(existing) if target_dir else None,
             )
             self.bus.write_artifact(f"tasks/{task_id}.md", report_markdown(spec, result), "lead_swe")
             self.state.set_phase(f"task:{task_id}", "DONE", result.review_verdict)

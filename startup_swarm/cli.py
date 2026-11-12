@@ -92,7 +92,11 @@ def build_parser() -> argparse.ArgumentParser:
     task.add_argument(
         "--context-file", action="append", default=[], help="Existing file the team should read (repeatable)"
     )
-    task.add_argument("--target-dir", default=None, help="Write files here instead of the workspace")
+    task.add_argument(
+        "--target-dir",
+        default=None,
+        help="Write into an existing folder (only files given via --context-file may be overwritten)",
+    )
 
     st = sub.add_parser("status", help="Show project status")
     _common(st)

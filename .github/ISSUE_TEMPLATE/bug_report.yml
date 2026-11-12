@@ -1,0 +1,31 @@
+name: Bug report
+description: Something did not work
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Command you ran
+      description: Include the flags. Remove secrets.
+      render: shell
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Version, provider, OS
+      placeholder: "0.3.0, anthropic, Windows 11 / Python 3.12"
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Output or log
+      description: Paste the error. Remove secrets and anything private from your idea.
+      render: shell

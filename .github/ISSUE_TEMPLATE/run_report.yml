@@ -1,0 +1,21 @@
+name: Run report (provider or model result)
+description: Tell us how a real run went, especially on Bedrock, Vertex or Foundry
+labels: [run-report]
+body:
+  - type: input
+    id: provider
+    attributes:
+      label: Provider and model IDs
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Outcome
+      description: Did it complete? Tokens used (from `startup-swarm status`), approximate cost, where it stopped.
+    validations:
+      required: true
+  - type: textarea
+    id: quality
+    attributes:
+      label: Quality of the documents and code

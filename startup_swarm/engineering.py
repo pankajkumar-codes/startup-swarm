@@ -12,7 +12,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, Iterable, List, Optional
 
 from startup_swarm.file_blocks import (
     FILE_FORMAT_INSTRUCTIONS,
@@ -83,6 +83,7 @@ class EngineeringTeam:
         design_context: List[str],
         existing_files: Optional[Dict[str, str]] = None,
         need_contract: bool = False,
+        overwrite: Optional[Iterable[str]] = None,
     ) -> TicketResult:
         lead = self.agents["lead_swe"]
         qa = self.agents["staff_qa"]
@@ -135,7 +136,7 @@ class EngineeringTeam:
             if self.rereview:
                 review = self._code_review(lead, ticket, files)
 
-        written = write_files(output_dir, files)
+        written = write_files(output_dir, files, overwrite=overwrite)
         return TicketResult(
             ticket_id=ticket.id,
             files=written,

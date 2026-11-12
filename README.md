@@ -18,6 +18,22 @@ There are review gates between every step.
 - **Pluggable storage.** Documents and state live on local disk by default. Cloud packages add
   hosted storage and deployment.
 
+> **Read before you run it with a real model**
+>
+> - **It spends real money.** Every real run calls a paid model API. A full run is many calls
+>   across all ten roles. `budget_cap_tokens` (default 600,000 tokens per run) is the hard stop, but
+>   the tool shows tokens, not dollars. Start with a small cap such as `100000`, run
+>   `startup-swarm status` to see usage, and check your provider's billing page.
+> - **Mock mode is free and offline**, but it produces placeholder text, not real output.
+> - **Generated code is not trusted.** The orchestrator writes files and never runs them. Read the
+>   code, run its tests yourself and do not deploy it unreviewed.
+> - **Existing repos are protected.** `task --target-dir` refuses to overwrite a file you did not pass
+>   with `--context-file`, and never touches `.github/`.
+> - **Do not put secrets in your idea or context files.** They are sent to your model provider.
+> - **Status of the providers.** `anthropic` and the offline `mock` are the primary paths. `bedrock`,
+>   `vertex` and `foundry` are implemented and unit-tested against fakes, but have not been tried
+>   against the real services yet. Treat them as experimental and please report what you find.
+
 | Repository | What it is |
 |---|---|
 | **startup-swarm** (this repo) | The agents, pipeline, CLI and model providers. Use it anywhere. |
@@ -67,8 +83,10 @@ follows is in `startup_swarm/agents/charter.py`.
 
 Requires Python 3.11+.
 
+macOS / Linux:
+
 ```bash
-python3 -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
+python3 -m venv .venv && source .venv/bin/activate
 pip install "git+https://github.com/pankajkumar-codes/startup-swarm.git@v0.3.0"
 
 mkdir my-startup && cd my-startup
@@ -76,6 +94,33 @@ startup-swarm init                                        # writes config.yaml
 startup-swarm run --mock --idea "A CLI that turns meeting notes into Jira tickets"
 startup-swarm status --mock
 ```
+
+Windows (PowerShell):
+
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1                              # if blocked: Set-ExecutionPolicy -Scope Process Bypass
+pip install "git+https://github.com/pankajkumar-codes/startup-swarm.git@v0.3.0"
+
+mkdir my-startup; cd my-startup
+startup-swarm init
+startup-swarm run --mock --idea "A CLI that turns meeting notes into Jira tickets"
+startup-swarm status --mock
+```
+
+You should see each document reviewed as `APPROVED`, then `COMPLETED: All phases done`.
+
+### Your first real run (Claude API)
+
+```powershell
+pip install "startup-swarm[anthropic] @ git+https://github.com/pankajkumar-codes/startup-swarm.git@v0.3.0"
+$env:ANTHROPIC_API_KEY = "sk-ant-..."          # macOS/Linux: export ANTHROPIC_API_KEY=...
+# In config.yaml set token_controls.budget_cap_tokens to 100000 for a first, cheap test
+startup-swarm run --provider anthropic --idea "A CLI that converts CSV files to JSON"
+startup-swarm status
+```
+
+If the run stops with `PAUSED_BUDGET`, nothing is lost: raise the cap and run again to resume.
 
 Everything is written to `artifacts/beta/<project>/`:
 
@@ -261,6 +306,11 @@ tests/               offline unit and integration tests
 | `PAUSED_BUDGET` | Raise `budget_cap_tokens` and run again. Finished phases are kept. |
 | `BLOCKED_ON_CEO_APPROVAL` | Read `02_CEO_DECISION.md`, edit the BRD or mocks if you like, then re-run or run `approve-gate ceo`. |
 | `Unknown backend 'aws'` | `pip install` startup-swarm-aws. |
+
+## Contributing and security
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Report vulnerabilities privately as described in
+[SECURITY.md](SECURITY.md). If you try a real provider, please open a *Run report* issue.
 
 ## License
 
