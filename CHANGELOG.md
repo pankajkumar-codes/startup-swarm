@@ -1,10 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.3.1 (2026-11-12): safer task mode, clearer docs
 
 - `task --target-dir` no longer overwrites existing files that were not passed with `--context-file`,
   never writes under `.github/`, and writes nothing if any path is refused.
 - README: cost and safety box, PowerShell quickstart, first real run, provider status.
+- Offline mock output is now clearly labelled "MOCK OUTPUT", echoes the idea where it can, and no longer
+  talks about an unrelated caption generator.
+- README: new two-minute intro, "what you get", and install lines pinned to this release.
 - Added CONTRIBUTING, SECURITY, CODE_OF_CONDUCT, issue forms and a PR template.
 
 ## 0.3.0 (2026-10-25): cloud-neutral core
