@@ -155,7 +155,11 @@ class TestMockBanner(unittest.TestCase):
         from startup_swarm.llm.mock import MockResponder
 
         prompt = Prompt(
-            system=[], context=[], instruction="Founder's idea:\nA CSV to JSON tool\n\nWrite it.", kind="author:vision"
+            agent="ceo",
+            system=[],
+            context=[],
+            instruction="Founder's idea:\nA CSV to JSON tool\n\nWrite it.",
+            kind="author:vision",
         )
         text = MockResponder().respond(prompt)
         self.assertIn("MOCK OUTPUT", text)
