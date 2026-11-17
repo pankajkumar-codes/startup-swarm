@@ -82,7 +82,8 @@ class Delegator:
         state_key = f"delegation:{scope_id}"
         cached = self.state.meta(state_key)
         if cached is not None:
-            return [r for r in cached.get("roles", []) if r in eligible]
+            # Re-apply today's eligibility and cap, in case the config was tightened since.
+            return [r for r in cached.get("roles", []) if r in eligible][: self.max_per_scope]
 
         roster = "\n".join(f"- {k}: call only if {SPECIALIST_CLASSES[k].WHEN}" for k in eligible)
         instruction = (

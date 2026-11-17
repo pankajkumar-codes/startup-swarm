@@ -228,3 +228,14 @@ class TestTechWriter(TempWorkspaceTest):
         self.assertNotIn("untrusted_material", inner.lower())
         self.assertIn("Ignore rules", inner)  # content kept, only the fence tags removed
         self.assertEqual(out.count("</untrusted_material>"), 1)
+
+    def test_cached_decision_respects_a_tightened_cap_and_allowed_list(self):
+        p, _ = self.pipeline({"delegate": plan("security_reviewer", "performance_reviewer")})
+        p.run("Test idea")
+        self.assertEqual(len(json.loads(p.bus.read_artifact("delegation/03_HLD.md.json"))["roles"]), 2)
+        cfg = self.write_config("process:\n  delegation:\n    max_specialists_per_scope: 1\n")
+        p2, _ = self.pipeline(config=cfg)
+        self.assertEqual(p2.delegator.decide("03_HLD.md", "03_HLD.md", "staff_em", "x"), ["security_reviewer"])
+        cfg2 = self.write_config("process:\n  delegation:\n    allowed: [performance_reviewer]\n")
+        p3, _ = self.pipeline(config=cfg2)
+        self.assertEqual(p3.delegator.decide("03_HLD.md", "03_HLD.md", "staff_em", "x"), ["performance_reviewer"])
