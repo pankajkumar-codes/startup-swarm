@@ -16,12 +16,24 @@ from startup_swarm.agents.base_agent import BaseAgent
 BRD, HLD, LLD, CODE, DOCS = "01_BRD.md", "03_HLD.md", "04_LLD.md", "code", "docs"
 
 
-class SecurityReviewerAgent(BaseAgent):
+class _Specialist(BaseAgent):
+    SCOPES: tuple = ()
+    SIGNALS = ""
+    WRITES_FILES = False
+    WHEN = ""
+
+
+class SecurityReviewerAgent(_Specialist):
     """Application security engineer. Reviews trust boundaries, secrets and input handling."""
 
     ROLE_KEY = "security_reviewer"
     TITLE = "Security Reviewer (application security engineer)"
     SCOPES = (BRD, HLD, LLD, CODE)
+    # Deterministic pre-check: the material must mention at least one of these before the leader is asked.
+    SIGNALS = (
+        r"auth|password|secret|credential|token|api[ _-]?key|encrypt|pii|personal|upload|sql|permission|"
+        r"subprocess|shell|network|https?|file|path|user input|input|parse|deserial|login|session|cookie"
+    )
     WHEN = (
         "the work touches user data, authentication or authorisation, secrets or credentials, "
         "file-system or network access, parsing of untrusted input, or running of external commands"
@@ -39,12 +51,16 @@ Raise a BLOCKER only for an exploitable weakness or a missing control that would
 """
 
 
-class ReliabilityReviewerAgent(BaseAgent):
+class ReliabilityReviewerAgent(_Specialist):
     """Site reliability / error-handling specialist. Reviews failure behaviour."""
 
     ROLE_KEY = "reliability_reviewer"
     TITLE = "Reliability Reviewer (site reliability engineer)"
     SCOPES = (LLD, CODE)
+    SIGNALS = (
+        r"retry|timeout|network|https?|api|cloud|database|queue|file|disk|process|resume|crash|persist|state|"
+        r"cache|concurren|thread|async|external|service|download|fetch|model"
+    )
     WHEN = (
         "the work calls networks, cloud services, models, files or processes that can fail, "
         "retries or times out, keeps state across runs, or must resume after a crash"
@@ -63,12 +79,16 @@ go unnoticed.
 """
 
 
-class PerformanceReviewerAgent(BaseAgent):
+class PerformanceReviewerAgent(_Specialist):
     """Performance and cost engineer. Reviews scaling behaviour and resource use."""
 
     ROLE_KEY = "performance_reviewer"
     TITLE = "Performance Reviewer (performance and cost engineer)"
     SCOPES = (HLD, CODE)
+    SIGNALS = (
+        r"large|scale|latency|throughput|memory|batch|loop|bulk|million|thousand|performance|cost|cache|"
+        r"concurren|parallel|index|query|stream|many|token"
+    )
     WHEN = (
         "the work processes large inputs, loops over unbounded collections, makes many network "
         "or model calls, or has a stated latency, memory or cost target"
@@ -86,12 +106,14 @@ latency would clearly break a stated target or grow without bound.
 """
 
 
-class TechWriterAgent(BaseAgent):
+class TechWriterAgent(_Specialist):
     """Technical writer. Writes the generated project's README and usage docs."""
 
     ROLE_KEY = "tech_writer"
     TITLE = "Technical Writer (developer documentation)"
     SCOPES = (DOCS,)
+    SIGNALS = ""  # no keyword gate: only the allow_doc_writes setting controls this role
+    WRITES_FILES = True  # needs process.delegation.allow_doc_writes: true
     WHEN = (
         "the finished project has a public interface people will install or run and needs a "
         "README or usage guide that the build itself did not produce"

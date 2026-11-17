@@ -4,9 +4,10 @@
 
 - On-demand specialists: Security Reviewer, Reliability Reviewer, Performance Reviewer and Technical Writer. They are
   never part of the fixed sequence: the CEO (BRD) or Staff EM (HLD, LLD, each ticket, the docs pass) decides per scope
-  whom to call, and "nobody" is the default. Decisions are validated in code (eligible roles only, capped by
-  `process.delegation.max_specialists_per_scope`), checkpointed in state, audited in `delegation/*.json`, and
-  covered by the token budget cap. Disable with `process.delegation.enabled: false`.
+  whom to call, and "nobody" is the default. Decisions are validated in code (eligible roles only, a keyword check
+  before the leader is asked, per-scope and project-wide caps), checkpointed in state, audited in `delegation/*.json`
+  (roles only), and covered by the token budget cap. The Technical Writer is opt-in
+  (`process.delegation.allow_doc_writes`). Disable everything with `process.delegation.enabled: false`.
   Role ideas were informed by the MIT-licensed ECC project; the prompts are original.
 
 - Claude Code plugin (experimental): `swarm-run` and `swarm-inspect` skills, plugin and marketplace manifests.

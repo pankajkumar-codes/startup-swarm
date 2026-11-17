@@ -536,6 +536,8 @@ class StartupPipeline:
 
     def _docs_pass(self, out_dir: str) -> None:
         """If the Staff EM calls the Technical Writer, write README/docs (markdown paths only)."""
+        if not self.settings.delegation.get("allow_doc_writes", False):
+            return  # file writes by the Technical Writer are opt-in, whatever any model decides
         files = sorted(self._generated_files(out_dir))
         called = self.delegator.decide(
             "docs", "build_docs", "staff_em", "Generated files:\n" + "\n".join(f"- {f}" for f in files)

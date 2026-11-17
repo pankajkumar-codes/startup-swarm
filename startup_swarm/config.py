@@ -53,7 +53,14 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "max_tickets_per_run": 5,
         "reviewers": {},
         # On-demand specialists: the CEO / Staff EM decide which (if any) to call per scope.
-        "delegation": {"enabled": True, "max_specialists_per_scope": 2, "allowed": []},
+        "delegation": {
+            "enabled": True,
+            "max_specialists_per_scope": 2,
+            "max_specialists_total": 12,
+            "require_signals": True,
+            "allow_doc_writes": False,
+            "allowed": [],
+        },
     },
     "token_controls": {
         "enable_prompt_caching": True,

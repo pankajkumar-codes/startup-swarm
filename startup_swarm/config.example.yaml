@@ -89,6 +89,9 @@ process:
   delegation:                     # on-demand specialists, decided by the CEO / Staff EM
     enabled: true                 # false = never call specialists (the ten core roles only)
     max_specialists_per_scope: 2  # cap per document / ticket; each call costs tokens
+    max_specialists_total: 12     # cap on specialist calls approved over the whole project
+    require_signals: true         # only offer a specialist if the material mentions its area (no model involved)
+    allow_doc_writes: false       # true = the Technical Writer may write README.md and docs/*.md
     allowed: []                   # empty = all of: security_reviewer, reliability_reviewer,
                                   #   performance_reviewer, tech_writer
 
