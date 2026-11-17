@@ -148,6 +148,10 @@ class MockResponder:
                     "strategic_guardrails": ["Ship the MVP first", "Offline tests", "No secrets"],
                 }
             )
+        if kind == "delegate":  # default: the leader calls nobody
+            return json.dumps({"specialists": []})
+        if kind == "files:docs":
+            return "<<<FILE README.md>>>\n# Project (mock README)\n<<<END FILE>>>\n"
         if kind == "backlog":
             return json.dumps(_BACKLOG)
         if kind == "scope":

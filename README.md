@@ -355,3 +355,26 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Report vulnerabilities privately as desc
 ## License
 
 MIT. See `LICENSE`.
+
+## On-demand specialists
+
+Besides the ten core roles there are four specialists: Security Reviewer, Reliability Reviewer, Performance
+Reviewer and Technical Writer. They are not part of the fixed phase order. For each document, ticket and the final
+docs pass, the CEO (BRD) or the Staff EM (everything else) answers a small JSON question: "call anyone?". The
+default answer is nobody. Specialist reviews join the normal review gates, so the revision limit and the token budget
+cap still apply. Turn it all off with `process.delegation.enabled: false`.
+
+A model's answer is never the only control, because the material it reads can contain text from users or other models.
+These checks run in code, before and after the model:
+
+| Setting (`process.delegation`) | Default | What it does |
+|---|---|---|
+| `require_signals` | `true` | A specialist is offered only if the material mentions its area (for example "password" or "upload" for security). If nothing matches, the leader is not asked at all, which also saves a call. |
+| `max_specialists_per_scope` | `2` | Cap per document or ticket. Applied again when a saved decision is reused. |
+| `max_specialists_total` | `12` | Cap on specialist calls approved over the whole project. |
+| `allow_doc_writes` | `false` | The Technical Writer writes files, so it is off until you set this to `true`. Even then it can only write `README.md` and `docs/*.md`. |
+| `allowed` | all | Limit the roster, for example `[security_reviewer]`. |
+
+Only the chosen roles are saved (in state and `delegation/*.json`), not the model's free-text reasons.
+
+Role ideas were informed by [ECC](https://github.com/affaan-m/ecc) (MIT license); the prompts are original.

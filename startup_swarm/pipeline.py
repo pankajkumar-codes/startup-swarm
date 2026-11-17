@@ -20,10 +20,13 @@ from dataclasses import dataclass
 from typing import Callable, Dict, List, Optional
 
 from startup_swarm.agents import AGENT_CLASSES, StructuredOutputError
+from startup_swarm.agents.specialists import SPECIALIST_CLASSES
 from startup_swarm.artifact_bus import ArtifactBus
 from startup_swarm.backends import Backend, get_backend
 from startup_swarm.config import Settings
+from startup_swarm.delegation import Delegator
 from startup_swarm.engineering import EngineeringTeam, TicketSpec, report_markdown
+from startup_swarm.file_blocks import FILE_FORMAT_INSTRUCTIONS, parse_file_blocks, write_files
 from startup_swarm.models import (
     AggregatedReview,
     CEODecision,
@@ -99,7 +102,9 @@ class StartupPipeline:
         self.state = state
         self.project = project
         self.fetch_reference = reference_fetcher
-        self.agents = {key: cls(settings.model_for_role(key), client) for key, cls in AGENT_CLASSES.items()}
+        all_classes = {**AGENT_CLASSES, **SPECIALIST_CLASSES}
+        self.agents = {key: cls(settings.model_for_role(key), client) for key, cls in all_classes.items()}
+        self.delegator = Delegator(settings, self.agents, state, bus)
         self.engineering = EngineeringTeam(self.agents, rereview=bool(settings.process.get("rereview_after_revision")))
 
     # ------------------------------------------------------------------
@@ -190,10 +195,18 @@ class StartupPipeline:
         instruction: str,
         context: List[str],
         reviewers: List[object],
+        leader: Optional[str] = None,
     ) -> str:
-        """Author -> scoped JSON reviews -> bounded revisions. Returns final content."""
+        """Author -> scoped JSON reviews -> bounded revisions. Returns final content.
+
+        If ``leader`` (the CEO or Staff EM) is given, it may call in on-demand specialists
+        for this document; they join the reviewers and share the same revision bound.
+        """
         content = author.author(f"author:{kind}", instruction, context)
         self.bus.write_artifact(doc, content, author.ROLE_KEY, note="draft")
+        if leader:
+            called = self.delegator.decide(doc, doc, leader, f"Document: {doc}\n\n{content}")
+            reviewers = list(reviewers) + [self.agents[r] for r in called if self.agents[r] not in reviewers]
         agg = self._review(doc, content, reviewers)
 
         rounds = int(self.settings.process.get("max_review_rounds", 1))
@@ -290,6 +303,7 @@ class StartupPipeline:
                 f"# Market research\n{self._read('01_MARKET_RESEARCH.md')}",
             ],
             self._reviewers("01_BRD.md", ["staff_em", "staff_swe", "staff_researcher", "staff_designer"]),
+            leader="ceo",
         )
         self.state.set_phase("2a_brd", "DONE")
 
@@ -394,6 +408,7 @@ class StartupPipeline:
                 f"# CEO decision and guardrails\n{self._read('02_CEO_DECISION.md')}",
             ],
             self._reviewers("03_HLD.md", ["staff_em", "lead_swe", "staff_qa", "staff_po"]),
+            leader="staff_em",
         )
         self.state.set_phase("3a_hld", "DONE")
 
@@ -411,6 +426,7 @@ class StartupPipeline:
                 f"# BRD (user stories and acceptance criteria)\n{self._read('01_BRD.md')}",
             ],
             self._reviewers("04_LLD.md", ["staff_em", "staff_swe", "staff_qa", "staff_po"]),
+            leader="staff_em",
         )
         self.state.set_phase("3b_lld", "DONE")
 
@@ -483,7 +499,19 @@ class StartupPipeline:
                 acceptance_criteria=ticket.acceptance_criteria,
             )
             logger.info("Building %s (%s) owner=%s", ticket.id, ticket.title, spec.assignee)
-            result = self.engineering.implement(spec, out_dir, design, self._generated_files(out_dir))
+            called = self.delegator.decide(
+                "code",
+                f"ticket:{ticket.id}",
+                "staff_em",
+                f"{ticket.title}\n{ticket.description}\n" + "\n".join(ticket.acceptance_criteria),
+            )
+            result = self.engineering.implement(
+                spec,
+                out_dir,
+                design,
+                self._generated_files(out_dir),
+                specialists=[self.agents[r] for r in called],
+            )
             self.bus.write_artifact(f"tickets/{ticket.id}.md", report_markdown(spec, result), "lead_swe")
             for rel in result.files:  # mirror generated code to the backend too
                 with open(os.path.join(out_dir, rel), "r", encoding="utf-8") as fh:
@@ -500,8 +528,44 @@ class StartupPipeline:
                 "(process.max_tickets_per_run). Run again to continue.",
                 "5_build",
             )
+        self._docs_pass(out_dir)
         self.state.set_phase("5_build", "DONE")
         return None
+
+    DOC_PATH = re.compile(r"^(README\.md|docs/[^\n]*\.md)$")
+
+    def _docs_pass(self, out_dir: str) -> None:
+        """If the Staff EM calls the Technical Writer, write README/docs (markdown paths only)."""
+        if not self.settings.delegation.get("allow_doc_writes", False):
+            return  # file writes by the Technical Writer are opt-in, whatever any model decides
+        files = sorted(self._generated_files(out_dir))
+        called = self.delegator.decide(
+            "docs", "build_docs", "staff_em", "Generated files:\n" + "\n".join(f"- {f}" for f in files)
+        )
+        if "tech_writer" not in called or self.state.phase_done("build_docs"):
+            return
+        writer = self.agents["tech_writer"]
+        text = writer.author(
+            "files:docs",
+            "Write README.md (and docs/*.md only if needed) for this finished project.\n\n" + FILE_FORMAT_INSTRUCTIONS,
+            [
+                f"# BRD\n{self._read('01_BRD.md')}",
+                f"# LLD\n{self._read('04_LLD.md')}",
+                "# Files present\n" + "\n".join(f"- {f}" for f in files),
+            ],
+        )
+        try:
+            parsed = parse_file_blocks(text)
+        except ValueError as exc:  # unsafe path or oversize file from the writer: skip docs, keep the build
+            logger.warning("Technical Writer output rejected, skipping docs: %s", exc)
+            self.state.set_phase("build_docs", "DONE", "skipped: unsafe writer output")
+            return
+        docs = {p: b for p, b in parsed.items() if self.DOC_PATH.match(p)}
+        written = write_files(out_dir, docs) if docs else []
+        for rel in written:
+            with open(os.path.join(out_dir, rel), "r", encoding="utf-8") as fh:
+                self.bus.write_artifact(f"{GENERATED_DIR}/{rel}", fh.read(), "tech_writer")
+        self.state.set_phase("build_docs", "DONE", f"{len(written)} files")
 
     def _write_build_report(self, backlog: SprintBacklog) -> None:
         lines = ["# Build report", "", "| Ticket | Status | Review |", "|---|---|---|"]
@@ -605,6 +669,9 @@ class StartupPipeline:
             )
             out_dir = target_dir or self.bus.path(GENERATED_DIR)
             existing = dict(context_files or {})
+            called = self.delegator.decide(
+                "code", f"task:{task_id}", "staff_em", f"{task}\n\nEM scoping: {scope.summary}\nRisks: {scope.risks}"
+            )
             result = self.engineering.implement(
                 spec,
                 out_dir,
@@ -612,6 +679,7 @@ class StartupPipeline:
                 existing_files=existing,
                 need_contract=True,
                 overwrite=list(existing) if target_dir else None,
+                specialists=[self.agents[r] for r in called],
             )
             self.bus.write_artifact(f"tasks/{task_id}.md", report_markdown(spec, result), "lead_swe")
             self.state.set_phase(f"task:{task_id}", "DONE", result.review_verdict)
