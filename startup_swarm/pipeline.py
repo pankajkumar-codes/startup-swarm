@@ -548,7 +548,13 @@ class StartupPipeline:
                 "# Files present\n" + "\n".join(f"- {f}" for f in files),
             ],
         )
-        docs = {p: b for p, b in parse_file_blocks(text).items() if self.DOC_PATH.match(p)}
+        try:
+            parsed = parse_file_blocks(text)
+        except ValueError as exc:  # unsafe path or oversize file from the writer: skip docs, keep the build
+            logger.warning("Technical Writer output rejected, skipping docs: %s", exc)
+            self.state.set_phase("build_docs", "DONE", "skipped: unsafe writer output")
+            return
+        docs = {p: b for p, b in parsed.items() if self.DOC_PATH.match(p)}
         written = write_files(out_dir, docs) if docs else []
         for rel in written:
             with open(os.path.join(out_dir, rel), "r", encoding="utf-8") as fh:

@@ -170,7 +170,7 @@ class SpecialistCall(BaseModel):
     """One specialist the CEO or Staff EM chose to call in."""
 
     role: str
-    reason: str = Field("", max_length=300)
+    reason: str = ""
 
     @field_validator("role", mode="before")
     @classmethod
@@ -178,6 +178,11 @@ class SpecialistCall(BaseModel):
         if isinstance(value, str):
             return value.strip().lower().replace(" ", "_").replace("-", "_")
         return value
+
+    @field_validator("reason", mode="before")
+    @classmethod
+    def _truncate_reason(cls, value):
+        return value[:300] if isinstance(value, str) else ""
 
 
 class DelegationPlan(BaseModel):

@@ -79,14 +79,14 @@ class Delegator:
             '{"specialists": [{"role": "<role key>", "reason": "<one sentence>"}]}'
         )
         leader = self.agents[leader_key]
-        error = ""
         try:
             plan = leader.ask_structured(
                 "delegate", instruction, DelegationPlan, [f"# Material for '{scope_id}'\n{subject[:MAX_SUBJECT_CHARS]}"]
             )
         except StructuredOutputError as exc:
+            # Fail safe: call nobody for this run, but do not cache the failure, so a re-run asks again.
             logger.warning("Delegation for %s unparseable, calling no specialists: %s", scope_id, exc)
-            plan, error = DelegationPlan(), str(exc)[:300]
+            return []
 
         chosen: List[str] = []
         reasons: Dict[str, str] = {}
@@ -97,7 +97,7 @@ class Delegator:
             else:
                 logger.info("Ignoring delegation to %r for %s (unknown, ineligible, duplicate or over cap)", call.role, scope_id)
 
-        record = {"scope": scope, "leader": leader_key, "roles": chosen, "reasons": reasons, "error": error}
+        record = {"scope": scope, "leader": leader_key, "roles": chosen, "reasons": reasons}
         self.state.set_meta(state_key, record)
         self.bus.write_artifact(f"delegation/{_slug(scope_id)}.json", json.dumps(record, indent=2), leader_key)
         logger.info("%s delegated %s to: %s", leader_key, scope_id, ", ".join(chosen) or "nobody")

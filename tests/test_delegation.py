@@ -75,9 +75,13 @@ class TestDelegatedDocuments(TempWorkspaceTest):
     def test_unparseable_answer_calls_nobody_and_run_continues(self):
         p, _ = self.pipeline({"delegate": "not json"})
         self.assertEqual(p.run("Test idea").status, "COMPLETED")
-        record = json.loads(p.bus.read_artifact("delegation/03_HLD.md.json"))
-        self.assertEqual(record["roles"], [])
-        self.assertTrue(record["error"])
+        self.assertFalse(p.bus.exists("delegation/03_HLD.md.json"))  # failure is not cached
+
+    def test_long_reason_is_truncated_not_fatal(self):
+        long = json.dumps({"specialists": [{"role": "security_reviewer", "reason": "x" * 900}]})
+        p, _ = self.pipeline({"delegate": long})
+        p.run("Test idea")
+        self.assertEqual(json.loads(p.bus.read_artifact("delegation/03_HLD.md.json"))["roles"], ["security_reviewer"])
 
     def test_allowed_list_restricts_roster(self):
         cfg = self.write_config("process:\n  delegation:\n    allowed: [reliability_reviewer]\n")
@@ -189,3 +193,8 @@ class TestTechWriter(TempWorkspaceTest):
             self.assertNotIn("pwned", fh.read())
         self.assertFalse(os.path.exists(os.path.join(gen, ".github")))
         self.assertTrue(os.path.exists(os.path.join(gen, "README.md")))
+
+    def test_unsafe_writer_path_skips_docs_without_failing_run(self):
+        p, _ = self.docs_pipeline("<<<FILE ../../escape.md>>>\nx\n<<<END FILE>>>\n")
+        self.assertEqual(p.run("Test idea").status, "COMPLETED")
+        self.assertFalse(os.path.exists(os.path.join(self.tmp, "escape.md")))
