@@ -95,7 +95,9 @@ class Delegator:
                 chosen.append(call.role)
                 reasons[call.role] = call.reason
             else:
-                logger.info("Ignoring delegation to %r for %s (unknown, ineligible, duplicate or over cap)", call.role, scope_id)
+                logger.info(
+                    "Ignoring delegation to %r for %s (unknown, ineligible, duplicate or over cap)", call.role, scope_id
+                )
 
         record = {"scope": scope, "leader": leader_key, "roles": chosen, "reasons": reasons}
         self.state.set_meta(state_key, record)

@@ -500,11 +500,16 @@ class StartupPipeline:
             )
             logger.info("Building %s (%s) owner=%s", ticket.id, ticket.title, spec.assignee)
             called = self.delegator.decide(
-                "code", f"ticket:{ticket.id}", "staff_em", f"{ticket.title}\n{ticket.description}\n"
-                + "\n".join(ticket.acceptance_criteria)
+                "code",
+                f"ticket:{ticket.id}",
+                "staff_em",
+                f"{ticket.title}\n{ticket.description}\n" + "\n".join(ticket.acceptance_criteria),
             )
             result = self.engineering.implement(
-                spec, out_dir, design, self._generated_files(out_dir),
+                spec,
+                out_dir,
+                design,
+                self._generated_files(out_dir),
                 specialists=[self.agents[r] for r in called],
             )
             self.bus.write_artifact(f"tickets/{ticket.id}.md", report_markdown(spec, result), "lead_swe")
@@ -540,8 +545,7 @@ class StartupPipeline:
         writer = self.agents["tech_writer"]
         text = writer.author(
             "files:docs",
-            "Write README.md (and docs/*.md only if needed) for this finished project.\n\n"
-            + FILE_FORMAT_INSTRUCTIONS,
+            "Write README.md (and docs/*.md only if needed) for this finished project.\n\n" + FILE_FORMAT_INSTRUCTIONS,
             [
                 f"# BRD\n{self._read('01_BRD.md')}",
                 f"# LLD\n{self._read('04_LLD.md')}",

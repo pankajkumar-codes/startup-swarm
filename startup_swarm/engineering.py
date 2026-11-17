@@ -150,7 +150,9 @@ class EngineeringTeam:
         )
 
     @staticmethod
-    def _code_review(lead, ticket: TicketSpec, files: Dict[str, str], specialists: Optional[List[object]] = None) -> ReviewResult:
+    def _code_review(
+        lead, ticket: TicketSpec, files: Dict[str, str], specialists: Optional[List[object]] = None
+    ) -> ReviewResult:
         """Lead SWE review, plus any specialists the EM called in. Blockers are merged."""
         content = _ticket_text(ticket) + "\n\n# Change\n" + render_files_for_prompt(files)
         name = f"change:{ticket.id}"

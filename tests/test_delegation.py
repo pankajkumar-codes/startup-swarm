@@ -66,7 +66,14 @@ class TestDelegatedDocuments(TempWorkspaceTest):
 
     def test_ineligible_unknown_duplicate_and_over_cap_are_dropped(self):
         # tech_writer is only for docs, not the HLD; "ghost" is unknown; cap is 2.
-        bad = plan("tech_writer", "ghost", "performance_reviewer", "performance_reviewer", "security_reviewer", "reliability_reviewer")
+        bad = plan(
+            "tech_writer",
+            "ghost",
+            "performance_reviewer",
+            "performance_reviewer",
+            "security_reviewer",
+            "reliability_reviewer",
+        )
         p, _ = self.pipeline({"delegate": bad})
         p.run("Test idea")
         roles = json.loads(p.bus.read_artifact("delegation/03_HLD.md.json"))["roles"]
@@ -87,7 +94,9 @@ class TestDelegatedDocuments(TempWorkspaceTest):
         cfg = self.write_config("process:\n  delegation:\n    allowed: [reliability_reviewer]\n")
         p, _ = self.pipeline({"delegate": plan("security_reviewer", "reliability_reviewer")}, config=cfg)
         p.run("Test idea")
-        self.assertEqual(json.loads(p.bus.read_artifact("delegation/04_LLD.md.json"))["roles"], ["reliability_reviewer"])
+        self.assertEqual(
+            json.loads(p.bus.read_artifact("delegation/04_LLD.md.json"))["roles"], ["reliability_reviewer"]
+        )
         self.assertFalse(p.bus.exists("delegation/03_HLD.md.json"))  # nobody eligible: no call made
 
     def test_specialist_blocker_triggers_the_bounded_revision(self):
