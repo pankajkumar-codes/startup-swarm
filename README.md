@@ -355,3 +355,15 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Report vulnerabilities privately as desc
 ## License
 
 MIT. See `LICENSE`.
+
+## On-demand specialists
+
+Besides the ten core roles there are four specialists: Security Reviewer, Reliability Reviewer, Performance
+Reviewer and Technical Writer. They are not part of the fixed phase order. For each document, ticket and the final
+docs pass, the CEO (BRD) or the Staff EM (everything else) answers a small JSON question: "call anyone?". The
+default answer is nobody. Answers are validated in code and capped (`process.delegation.max_specialists_per_scope`,
+default 2), saved so a resumed run does not ask again, and written to `delegation/` in the artifacts folder.
+Specialist reviews join the normal review gates, so the revision limit and the token budget cap still apply.
+Turn it off with `process.delegation.enabled: false`.
+
+Role ideas were informed by [ECC](https://github.com/affaan-m/ecc) (MIT license); the prompts are original.

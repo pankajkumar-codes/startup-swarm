@@ -164,3 +164,23 @@ class EMScope(BaseModel):
         if isinstance(value, str):
             return value.strip().lower().replace(" ", "_").replace("-", "_")
         return value
+
+
+class SpecialistCall(BaseModel):
+    """One specialist the CEO or Staff EM chose to call in."""
+
+    role: str
+    reason: str = Field("", max_length=300)
+
+    @field_validator("role", mode="before")
+    @classmethod
+    def _normalise_role(cls, value):
+        if isinstance(value, str):
+            return value.strip().lower().replace(" ", "_").replace("-", "_")
+        return value
+
+
+class DelegationPlan(BaseModel):
+    """Which on-call specialists to invoke for one phase, document or ticket (may be empty)."""
+
+    specialists: List[SpecialistCall] = Field(default_factory=list)

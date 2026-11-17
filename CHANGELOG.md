@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- On-demand specialists: Security Reviewer, Reliability Reviewer, Performance Reviewer and Technical Writer. They are
+  never part of the fixed sequence: the CEO (BRD) or Staff EM (HLD, LLD, each ticket, the docs pass) decides per scope
+  whom to call, and "nobody" is the default. Decisions are validated in code (eligible roles only, capped by
+  `process.delegation.max_specialists_per_scope`), checkpointed in state, audited in `delegation/*.json`, and
+  covered by the token budget cap. Disable with `process.delegation.enabled: false`.
+  Role ideas were informed by the MIT-licensed ECC project; the prompts are original.
+
 - Claude Code plugin (experimental): `swarm-run` and `swarm-inspect` skills, plugin and marketplace manifests.
 - Release workflow can publish to PyPI with trusted publishing (off until `PUBLISH_TO_PYPI=true`); see CONTRIBUTING.
 - Package metadata: authors, Python version classifiers, issue and changelog links.

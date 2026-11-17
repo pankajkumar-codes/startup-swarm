@@ -44,6 +44,7 @@ class TicketResult:
     review_blockers: List[str]
     fixed_after_review: bool
     notes: str = ""
+    specialists: List[str] = field(default_factory=list)
 
     def as_dict(self) -> Dict:
         return self.__dict__.copy()
@@ -84,6 +85,7 @@ class EngineeringTeam:
         existing_files: Optional[Dict[str, str]] = None,
         need_contract: bool = False,
         overwrite: Optional[Iterable[str]] = None,
+        specialists: Optional[List[object]] = None,
     ) -> TicketResult:
         lead = self.agents["lead_swe"]
         qa = self.agents["staff_qa"]
@@ -121,7 +123,7 @@ class EngineeringTeam:
         )
         files = {**impl_files, **parse_file_blocks(test_text)}
 
-        review = self._code_review(lead, ticket, files)
+        review = self._code_review(lead, ticket, files, specialists or [])
         fixed = False
         if review.verdict != Verdict.APPROVED and review.blockers:
             punch = "\n".join(f"- {b.section}: {b.issue} Fix: {b.suggested_fix or ''}" for b in review.blockers)
@@ -134,7 +136,7 @@ class EngineeringTeam:
             files.update(parse_file_blocks(fix_text))
             fixed = True
             if self.rereview:
-                review = self._code_review(lead, ticket, files)
+                review = self._code_review(lead, ticket, files, specialists or [])
 
         written = write_files(output_dir, files, overwrite=overwrite)
         return TicketResult(
@@ -144,12 +146,23 @@ class EngineeringTeam:
             review_blockers=[f"{b.section}: {b.issue}" for b in review.blockers],
             fixed_after_review=fixed,
             notes=_notes(impl_text),
+            specialists=[s.ROLE_KEY for s in specialists or []],
         )
 
     @staticmethod
-    def _code_review(lead, ticket: TicketSpec, files: Dict[str, str]) -> ReviewResult:
+    def _code_review(lead, ticket: TicketSpec, files: Dict[str, str], specialists: Optional[List[object]] = None) -> ReviewResult:
+        """Lead SWE review, plus any specialists the EM called in. Blockers are merged."""
         content = _ticket_text(ticket) + "\n\n# Change\n" + render_files_for_prompt(files)
-        return lead.review(f"change:{ticket.id}", content, review_model=lead.model, max_tokens=1500, kind="code_review")
+        name = f"change:{ticket.id}"
+        review = lead.review(name, content, review_model=lead.model, max_tokens=1500, kind="code_review")
+        for spec in specialists or []:
+            extra = spec.review(name, content, review_model=spec.model, max_tokens=1500, kind="code_review")
+            for c in extra.blockers:
+                c.section = f"[{spec.ROLE_KEY}] {c.section}"[:200]
+                review.blockers.append(c)
+            if extra.blockers and review.verdict == Verdict.APPROVED:
+                review.verdict = Verdict.REVISE
+        return review
 
 
 def report_markdown(ticket: TicketSpec, result: TicketResult) -> str:
@@ -158,7 +171,8 @@ def report_markdown(ticket: TicketSpec, result: TicketResult) -> str:
         f"- Owner: {ticket.assignee}\n"
         f"- Review: {result.review_verdict}\n"
         f"- Fixed after review: {result.fixed_after_review}\n"
-        f"- Notes: {result.notes or '-'}\n\n"
+        f"- Notes: {result.notes or '-'}\n"
+        f"- Specialists called: {', '.join(result.specialists) or 'none'}\n\n"
         "## Files\n" + "\n".join(f"- `{f}`" for f in result.files) + "\n\n"
         "## Review blockers\n" + ("\n".join(f"- {b}" for b in result.review_blockers) or "- none") + "\n\n"
         "```json\n" + json.dumps(result.as_dict(), indent=2) + "\n```\n"

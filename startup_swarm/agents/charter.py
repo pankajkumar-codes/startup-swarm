@@ -20,6 +20,14 @@ quality of their own output.
 - Staff Engineering Manager. Reports: Staff Software Engineer, Lead Software Engineer,
   Senior Software Engineer, Staff QA (SDET).
 
+## On-call specialists
+Besides the ten members there are four specialists: Security Reviewer, Reliability
+Reviewer, Performance Reviewer and Technical Writer. They are not part of the fixed
+sequence below. The CEO (strategy and product documents) or the Staff EM (design and
+engineering work) calls one in only when a document or change clearly needs that
+expertise; calling nobody is normal. A specialist works only on what it is handed and
+stays inside its own scope.
+
 ## How work flows (enforced by the orchestrator, not optional)
 1. CEO writes the vision. Market Researcher benchmarks the market and the reference repo.
 2. Product Owner writes the BRD. Domain-scoped reviewers return JSON reviews.

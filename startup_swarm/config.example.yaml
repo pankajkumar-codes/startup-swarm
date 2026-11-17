@@ -67,6 +67,11 @@ roles:
   staff_tpm: workhorse
   senior_swe: workhorse
   staff_qa: workhorse
+  # On-call specialists (only run when the CEO or Staff EM calls them in)
+  security_reviewer: workhorse
+  reliability_reviewer: workhorse
+  performance_reviewer: workhorse
+  tech_writer: workhorse
 
 # Process rules. The pipeline enforces these in code.
 process:
@@ -80,6 +85,12 @@ process:
     02_MOCKS.md: [staff_em, staff_swe, staff_researcher, staff_po]
     03_HLD.md: [staff_em, lead_swe, staff_qa, staff_po]
     04_LLD.md: [staff_em, staff_swe, staff_qa, staff_po]
+
+  delegation:                     # on-demand specialists, decided by the CEO / Staff EM
+    enabled: true                 # false = never call specialists (the ten core roles only)
+    max_specialists_per_scope: 2  # cap per document / ticket; each call costs tokens
+    allowed: []                   # empty = all of: security_reviewer, reliability_reviewer,
+                                  #   performance_reviewer, tech_writer
 
 token_controls:
   enable_prompt_caching: true

@@ -138,7 +138,7 @@ class TestTaskMode(TempWorkspaceTest):
         outcome = p.run_task("Add retry with backoff", {"src/app/core.py": "x = 1\n"}, target_dir=target)
         self.assertEqual(outcome.status, "COMPLETED", outcome.message)
         k = kinds(responder)
-        self.assertEqual(k[:2], ["scope", "contract"])
+        self.assertEqual(k[:3], ["scope", "delegate", "contract"])
         self.assertNotIn("author:vision", k)
         self.assertNotIn("ceo_gate", k)
         self.assertTrue(os.path.exists(os.path.join(target, "src", "app", "core.py")))
